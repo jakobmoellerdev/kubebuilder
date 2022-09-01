@@ -57,8 +57,8 @@ func (p Plugin) GetInitSubcommand() plugin.InitSubcommand { return &p.initSubcom
 // GetCreateAPISubcommand will return the subcommand which is responsible for scaffolding apis
 func (p Plugin) GetCreateAPISubcommand() plugin.CreateAPISubcommand { return &p.createAPISubcommand }
 
-// GetCreateAPISubcommand will return the subcommand which is responsible for scaffolding webhooks
-func (p Plugin) GetCreateWebhookSubcommand() plugin.CreateAPISubcommand {
+// GetCreateWebhookSubcommand will return the subcommand which is responsible for scaffolding webhooks
+func (p Plugin) GetCreateWebhookSubcommand() plugin.CreateWebhookSubcommand {
 	return &p.createWebhookSubcommand
 }
 

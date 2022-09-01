@@ -18,15 +18,15 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"sigs.k8s.io/kubebuilder/v3/pkg/config"
 	"sigs.k8s.io/kubebuilder/v3/pkg/machinery"
 	"sigs.k8s.io/kubebuilder/v3/pkg/model/resource"
 	"sigs.k8s.io/kubebuilder/v3/pkg/plugin"
-	"sigs.k8s.io/kubebuilder/v3/pkg/plugin/util"
 )
 
-var _ plugin.CreateAPISubcommand = &createAPISubcommand{}
+var _ plugin.CreateWebhookSubcommand = &createWebhookSubcommand{}
 
 type createWebhookSubcommand struct {
 	config config.Config
@@ -62,24 +62,19 @@ func (p *createWebhookSubcommand) InjectResource(res *resource.Resource) error {
 
 func (p *createWebhookSubcommand) Scaffold(fs machinery.Filesystem) error {
 	if p.pluginConfig.ApiGoModCreated {
-		return nil
+		fmt.Println("using existing multi-module layout, updating submodules...")
+		return TidyGoModForAPI(p.config.IsMultiGroup())
 	}
 
 	if err := CreateGoModForAPI(fs, p.config); err != nil {
 		return err
 	}
 
-	p.pluginConfig.ApiGoModCreated = true
+	if err := TidyGoModForAPI(p.config.IsMultiGroup()); err != nil {
+		return err
+	}
 
-	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
-		return err
-	}
-	if err := util.RunCmd("Running make", "make", "generate"); err != nil {
-		return err
-	}
-	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
-		return err
-	}
+	p.pluginConfig.ApiGoModCreated = true
 
 	return p.config.EncodePluginConfig(pluginKey, p.pluginConfig)
 }

@@ -15,7 +15,8 @@ var _ plugin.EditSubcommand = &editSubcommand{}
 type editSubcommand struct {
 	config config.Config
 
-	multimodule bool
+	multimodule     bool
+	canUseAPIModule bool
 	pluginConfig
 }
 
@@ -51,14 +52,10 @@ func (p *editSubcommand) InjectConfig(c config.Config) error {
 	}
 	p.pluginConfig = cfg
 
-	return nil
-}
-
-func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
 	if res, err := p.config.GetResources(); err != nil {
 		return err
 	} else if len(res) == 0 {
-		return nil
+		p.canUseAPIModule = false
 	} else {
 		foundAtLeastOneAPI := false
 		for i := range res {
@@ -67,9 +64,15 @@ func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
 				break
 			}
 		}
-		if !foundAtLeastOneAPI {
-			return nil
-		}
+		p.canUseAPIModule = foundAtLeastOneAPI
+	}
+
+	return nil
+}
+
+func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
+	if !p.canUseAPIModule {
+		return nil
 	}
 
 	if p.multimodule {
@@ -78,6 +81,10 @@ func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
 		}
 
 		if err := CreateGoModForAPI(fs, p.config); err != nil {
+			return err
+		}
+
+		if err := TidyGoModForAPI(p.config.IsMultiGroup()); err != nil {
 			return err
 		}
 
@@ -92,10 +99,6 @@ func (p *editSubcommand) Scaffold(fs machinery.Filesystem) error {
 		}
 
 		p.pluginConfig.ApiGoModCreated = false
-	}
-
-	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
-		return err
 	}
 
 	return p.config.EncodePluginConfig(pluginKey, p.pluginConfig)

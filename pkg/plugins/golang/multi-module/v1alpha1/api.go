@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/kubebuilder/v3/pkg/config"
@@ -87,18 +88,18 @@ func (p *createAPISubcommand) InjectResource(res *resource.Resource) error {
 
 func (p *createAPISubcommand) Scaffold(fs machinery.Filesystem) error {
 	if p.pluginConfig.ApiGoModCreated {
-		return nil
+		fmt.Println("using existing multi-module layout, updating submodules...")
+		return TidyGoModForAPI(p.config.IsMultiGroup())
 	}
 
 	if err := CreateGoModForAPI(fs, p.config); err != nil {
 		return err
 	}
-
-	p.pluginConfig.ApiGoModCreated = true
-
-	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
+	if err := TidyGoModForAPI(p.config.IsMultiGroup()); err != nil {
 		return err
 	}
+
+	p.pluginConfig.ApiGoModCreated = true
 
 	return p.config.EncodePluginConfig(pluginKey, p.pluginConfig)
 }

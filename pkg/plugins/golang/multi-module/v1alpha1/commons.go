@@ -51,7 +51,7 @@ func GetAPIPath(isMultiGroup bool) string {
 	return path
 }
 
-func UpdateAPIGoMod(isMultiGroup bool) error {
+func TidyGoModForAPI(isMultiGroup bool) error {
 	apiPath := GetAPIPath(isMultiGroup)
 	return util.RunInDir(apiPath, func() error {
 		if err := util.RunCmd(
