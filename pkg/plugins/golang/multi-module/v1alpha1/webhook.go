@@ -19,42 +19,24 @@ package v1alpha1
 import (
 	"errors"
 
-	"github.com/spf13/pflag"
 	"sigs.k8s.io/kubebuilder/v3/pkg/config"
 	"sigs.k8s.io/kubebuilder/v3/pkg/machinery"
 	"sigs.k8s.io/kubebuilder/v3/pkg/model/resource"
 	"sigs.k8s.io/kubebuilder/v3/pkg/plugin"
+	"sigs.k8s.io/kubebuilder/v3/pkg/plugin/util"
 )
 
 var _ plugin.CreateAPISubcommand = &createAPISubcommand{}
 
-type createAPISubcommand struct {
+type createWebhookSubcommand struct {
 	config config.Config
 
 	resource *resource.Resource
 
 	pluginConfig
-
-	// runMake indicates whether to run make or not after scaffolding APIs
-	runMake bool
 }
 
-func (p *createAPISubcommand) BindFlags(fs *pflag.FlagSet) {
-	p.runMake, _ = fs.GetBool("make")
-}
-
-func (p *createAPISubcommand) UpdateMetadata(cliMeta plugin.CLIMetadata, subcmdMeta *plugin.SubcommandMetadata) {
-	subcmdMeta.Description = subcmdMeta.Description + `
-Warning: This will also create multiple go.mod files. If you are not careful, you can break your dependency chain.
-The multi-module extension will create replace directives for local development, 
-which you might want to drop after creating your first stable API.
-
-For more information, visit 
-https://github.com/golang/go/wiki/Modules#should-i-have-multiple-modules-in-a-single-repository
-`
-}
-
-func (p *createAPISubcommand) InjectConfig(c config.Config) error {
+func (p *createWebhookSubcommand) InjectConfig(c config.Config) error {
 	p.config = c
 
 	// Track the config and ensure it exists and can be parsed
@@ -67,25 +49,18 @@ func (p *createAPISubcommand) InjectConfig(c config.Config) error {
 			return err
 		}
 	}
+
 	p.pluginConfig = cfg
 
 	return nil
 }
 
-func (p *createAPISubcommand) InjectResource(res *resource.Resource) error {
+func (p *createWebhookSubcommand) InjectResource(res *resource.Resource) error {
 	p.resource = res
-
-	if !p.resource.HasAPI() {
-		return plugin.ExitError{
-			Plugin: pluginName,
-			Reason: "multi-module pattern is only supported when API is scaffolded",
-		}
-	}
-
 	return nil
 }
 
-func (p *createAPISubcommand) Scaffold(fs machinery.Filesystem) error {
+func (p *createWebhookSubcommand) Scaffold(fs machinery.Filesystem) error {
 	if p.pluginConfig.ApiGoModCreated {
 		return nil
 	}
@@ -96,6 +71,12 @@ func (p *createAPISubcommand) Scaffold(fs machinery.Filesystem) error {
 
 	p.pluginConfig.ApiGoModCreated = true
 
+	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
+		return err
+	}
+	if err := util.RunCmd("Running make", "make", "generate"); err != nil {
+		return err
+	}
 	if err := UpdateAPIGoMod(p.config.IsMultiGroup()); err != nil {
 		return err
 	}

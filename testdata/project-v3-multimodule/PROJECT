@@ -1,0 +1,24 @@
+domain: testproject.org
+layout:
+- go.kubebuilder.io/v3
+- multi-module.go.kubebuilder.io/v1-alpha
+plugins:
+  multi-module.go.kubebuilder.io/v1-alpha:
+    ApiGoModCreated: true
+projectName: project-v3-multimodule
+repo: sigs.k8s.io/kubebuilder/testdata/project-v3-multimodule
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: testproject.org
+  group: crew
+  kind: Captain
+  path: sigs.k8s.io/kubebuilder/testdata/project-v3-multimodule/api/v1
+  version: v1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+version: "3"
